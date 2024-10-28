@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  coordinator:
+    image: trinodb/trino:438
+    container_name: coordinator
+    ports:
+      - 8080:8080
+    volumes:
+      - ./config/config.properties:/etc/trino/config.properties
+      - ./config/log.properties:/etc/trino/log.properties
+      - ./config/opa.properties:/etc/trino/opa.properties
+      - ./catalog:/etc/trino/catalog
+    depends_on:
+      - opa
+      - postgres
+      - jaeger
+  opa:
+    image: openpolicyagent/opa:latest
+    container_name: opa
+    ports:
+      - 8181:8181
+    command: 
+      - run 
+      - --server
+      - /policies
+      - --log-level 
+      - debug
+    volumes:
+      - ./example/trino.rego:/policies/trino.rego
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - 16686:16686
+      - 4317:4317
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: trino
+      POSTGRES_PASSWORD: trino_password
+      POSTGRES_DB: trino_db
