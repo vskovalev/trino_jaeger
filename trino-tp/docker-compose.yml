@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  trino:
+    image: trinodb/trino:latest
+    container_name: trino
+    networks:
+      platform:
+        aliases:
+          - trino
+    depends_on:
+      - jaeger
+      - postgres
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./trino-config/config.properties:/etc/trino/config.properties
+      - ./catalog:/etc/trino/catalog
+    restart: always
+
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: trino
+      POSTGRES_PASSWORD: trino_password
+      POSTGRES_DB: trino_db
+    networks:
+      platform:
+        aliases:
+          - postgres
+    restart: always
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    networks:
+      platform:
+        aliases:
+          - jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    restart: always
+
+networks:
+  platform:
+    driver: bridge
